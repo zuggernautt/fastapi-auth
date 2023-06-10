@@ -61,7 +61,15 @@ def generate_api_key():
     return str(secrets.randbelow(10**10)).zfill(10)
 
 def encrypt_api_key(api_key):
-    return bcrypt.hashpw(api_key.encode(), bcrypt.gensalt()).decode()
+    hashed_api_key = bcrypt.hashpw(api_key.encode(), bcrypt.gensalt())
+
+    return hashed_api_key.decode()
+    
+# def validate_api_key(api_key, hashed_api_key):
+#     return bcrypt.checkpw(api_key.encode(), hashed_api_key.encode())
+
+    
+
 
 
 # # Function to generate a random API key
@@ -125,6 +133,12 @@ def authenticate_user(api_key: str, db: Session = Depends(get_db)):
             detail="API key expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    # if not validate_api_key(api_key, user.api_key):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid API key",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
 
     return user
 
@@ -136,13 +150,14 @@ def authenticate(api_key: str = Depends(api_key_header), user: User = Depends(au
     return response
 
 @app.get("/getUserData")
-def get_user_data(api_key: str, db: Session = Depends(get_db), user: User = Depends(authenticate_user)):
-    user = db.query(User).filter(User.api_key == api_key).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not exist")
-    current_time = datetime.now()
-    if user.expiry_date < current_time:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="API key expired")
+def get_user_data(db: Session = Depends(get_db), user: User = Depends(authenticate_user)):
+    # user = db.query(User).filter(User.api_key == api_key).first()
+    # if not user:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not exist")
+    # current_time = datetime.now()
+    # if user.expiry_date < current_time:
+    #     raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="API key expired")
+    # response = {"username": user.username, "email": user.email}
     response = {"username": user.username, "email": user.email}
     return response
 
