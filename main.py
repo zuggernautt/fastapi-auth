@@ -90,14 +90,14 @@ def create_user(db, user_data):
         id=secrets.token_hex(10),
         username=user_data.username,
         email=user_data.email,
-        api_key=api_key,
+        api_key=hashed_api_key,
         expiry_date=expiry_date
     )
 
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    return user, api_key
 
 def get_db():
     db = SessionLocal()
@@ -108,12 +108,12 @@ def get_db():
 
 @app.post("/register", response_model=None)
 def register_user(user_data: UserRegistration, db: Session = Depends(get_db)):
-    user = create_user(db, user_data)
+    user , api_key= create_user(db, user_data)
     response = UserResponse(
         id=user.id,
         username=user.username,
         email=user.email,
-        api_key=user.api_key,
+        api_key=api_key,
         expiry_date=user.expiry_date
     )
     return response
