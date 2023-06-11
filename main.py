@@ -65,22 +65,15 @@ def encrypt_api_key(api_key):
 
     return hashed_api_key.decode()
     
-# def validate_api_key(api_key, hashed_api_key):
-#     return bcrypt.checkpw(api_key.encode(), hashed_api_key.encode())
-
-    
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# # Function to generate a random API key
-# def generate_api_key():
-#     return secrets.token_hex(5)
-
-# # Function to hash the API key
-# def encrypt_api_key(api_key):
-#     return pwd_context.hash(api_key)
-
-# Function to create a user in the database
 def create_user(db, user_data):
     api_key = generate_api_key()
     hashed_api_key = encrypt_api_key(api_key)
@@ -99,16 +92,10 @@ def create_user(db, user_data):
     db.refresh(user)
     return user, api_key
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
-@app.post("/register", response_model=None)
+@app.post("/register", response_model=UserResponse)
 def register_user(user_data: UserRegistration, db: Session = Depends(get_db)):
-    user , api_key= create_user(db, user_data)
+    user, api_key = create_user(db, user_data)
     response = UserResponse(
         id=user.id,
         username=user.username,
@@ -142,25 +129,24 @@ def authenticate_user(api_key: str, db: Session = Depends(get_db)):
 
     return user
 
+
 @app.get("/user/authenticate", response_model=Token)
 def authenticate(api_key: str = Depends(api_key_header), user: User = Depends(authenticate_user)):
-    # access_token = Token(access_token=user.api_key, token_type="bearer")
-    # return access_token
-    response = {"username": user.username, "email": user.email}
-    return response
+    access_token = Token(access_token=user.api_key, token_type="bearer")
+    return access_token
+
+
+
+
+# @app.get("/getUserData")
+# def get_user_data(user: User = Depends(authenticate_user)):
+#     response = {"username": user.username, "email": user.email}
+#     return response
 
 @app.get("/getUserData")
-def get_user_data(db: Session = Depends(get_db), user: User = Depends(authenticate_user)):
-    # user = db.query(User).filter(User.api_key == api_key).first()
-    # if not user:
-    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not exist")
-    # current_time = datetime.now()
-    # if user.expiry_date < current_time:
-    #     raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="API key expired")
-    # response = {"username": user.username, "email": user.email}
+def get_user_data(api_key: str = Depends(api_key_header), user: User = Depends(authenticate_user)):
     response = {"username": user.username, "email": user.email}
     return response
-
 
 
 @app.exception_handler(Exception)
@@ -170,5 +156,3 @@ async def server_error_handler(request: Request, exc: Exception):
         content={"message": "Internal server error"},
     )
 
-#ennable authentication for getdata
-#store encrypted data in db
